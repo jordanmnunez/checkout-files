@@ -5,6 +5,7 @@ const fs = require('fs');
 const token = core.getInput('token');
 const octokit = github.getOctokit(token)
 
+
 const files = core.getInput('files', { required: true }).split(' ');
 const repository = process.env['GITHUB_REPOSITORY']
 
@@ -12,34 +13,67 @@ const owner = repository.split('/')[0]
 const repo = repository.split('/')[1]
 const ref = core.getInput('branch');
 
-function getContentParams() {
-    let params = { owner, repo }
-
-    if (ref) { params.ref = ref }
-    return params;
+const baseContentParams = {
+    owner,
+    repo,
+    ...(ref ? { ref } : {}),
 }
 
-function getContent(path) {
-    octokit.rest.repos.getContent({ path, ...getContentParams() })
-        .then(data => {
-        if (Array.isArray(data.data)) {
-            data.data.forEach(fileData => getContent(fileData.path))
-        } else {
-            saveContent(data.data)
+
+async function getContent({ path }) {
+    console.log(`fetching: ${path}`);
+    const { data } = await octokit.rest.repos.getContent({
+        path,
+        ...baseContentParams,
+    });
+
+    console.log(data);
+
+    if (Array.isArray(data)) {
+        for (const { path } in data) {
+            await getContent({ path });
         }
-    })
+    } else {
+        try {
+            let fileString = decodeContent(data.content);
+
+            // Bypess 1MB max on mediaType: JSON
+            if (data.size >= 1000000) {
+                fileString = await getRawFile(data);
+            }
+
+            saveToFile({ path, fileString });
+        } catch (e) {
+            throw e
+        }
+    }
 }
 
-function saveContent(data) {
-    const fileContent = Buffer.from(data.content, 'base64').toString('utf-8');
-    if (data.path.includes('/')) {
-        let foldersPath = data.path.split('/')
+async function getRawFile({ path }) {
+    const { data } = await octokit.rest.repos.getContent({
+        ...baseContentParams,
+        path,
+        mediaType: {
+            format: "raw"
+        },
+    });
+
+    return data;
+}
+
+function decodeContent(content) {
+    return Buffer.from(content, 'base64').toString('utf-8');
+}
+
+function saveToFile({ path, fileString }) {
+    if (path.includes('/')) {
+        let foldersPath = path.split('/')
         foldersPath.pop()
         fs.mkdirSync(foldersPath.join('/'), { recursive: true });
     }
-    fs.writeFile(data.path, fileContent, err => { if (err) throw err });
+    fs.writeFile(path, fileString, err => { if (err) throw err });
 }
 
-files.forEach(file => {
-    getContent(file)
+files.forEach(path => {
+    getContent({ path });
 })
