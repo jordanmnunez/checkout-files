@@ -21,13 +21,10 @@ const baseContentParams = {
 
 
 async function getContent({ path }) {
-    console.log(`fetching: ${path}`);
     const { data } = await octokit.rest.repos.getContent({
         path,
         ...baseContentParams,
     });
-
-    console.log(data);
 
     if (Array.isArray(data)) {
         for (const { path } in data) {
@@ -35,14 +32,10 @@ async function getContent({ path }) {
         }
     } else {
         try {
-            let fileString = decodeContent(data.content);
-
-            // Bypess 1MB max on mediaType: JSON
-            if (data.size >= 1000000) {
-                fileString = await getRawFile(data);
-            }
-
-            saveToFile({ path, fileString });
+            saveToFile({
+                path,
+                fileString: await getRawFile(data),
+            });
         } catch (e) {
             throw e
         }
@@ -59,10 +52,6 @@ async function getRawFile({ path }) {
     });
 
     return data;
-}
-
-function decodeContent(content) {
-    return Buffer.from(content, 'base64').toString('utf-8');
 }
 
 function saveToFile({ path, fileString }) {
