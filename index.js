@@ -33,7 +33,7 @@ async function getContent({ path }) {
     } else {
         let fileString = Buffer.from(data.content, 'base64').toString('utf-8');
         if (fileString.length == 0 && data.size > 0) {
-            const rawData = getRawFile({ path });
+            const rawData = await getRawFile({ path });
             console.log(`RAW `, rawData);
         }
 
