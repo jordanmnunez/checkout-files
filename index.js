@@ -28,7 +28,7 @@ async function getContent({ path }) {
 
     if (Array.isArray(data)) {
         for (const { path } in data) {
-            await getContent({ path });
+            getContent({ path });
         }
     } else {
         try {
