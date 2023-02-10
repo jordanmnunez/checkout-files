@@ -33,21 +33,10 @@ async function getContent({ path }) {
     } else {
         let fileString = Buffer.from(data.content, 'base64').toString('utf-8');
         if (fileString.length == 0 && data.size > 0) {
-            const rawData = await getRawFile({ path });
-            console.log(`RAW `, rawData);
+            fileString = await getRawFile({ path });
         }
 
         saveToFile({ path, fileString });
-        // try {
-        //     // let const fileContent = Buffer.from(data.content, 'base64').toString('utf-8');
-        //     saveToFile({
-        //         path,
-        //         fileString: await getRawFile(data),
-        //     });
-        // } catch (e) {
-        //     throw e
-        // }
-
     }
 }
 
