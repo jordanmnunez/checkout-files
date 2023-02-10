@@ -27,25 +27,26 @@ async function getContent({ path }) {
     });
 
     if (Array.isArray(data)) {
-        console.log(`FOLDER: `, path)
         data.forEach(fileData => {
-            if (fileData.path) {
-                getContent({ path: fileData.path });
-            } else {
-                console.log(`EMPTY: `, { fileData, data })
-            }
+            getContent({ path: fileData.path });
         })
     } else {
-        console.log(`FILE: `, { path, data })
-            // try {
-            //     // let const fileContent = Buffer.from(data.content, 'base64').toString('utf-8');
-            //     saveToFile({
-            //         path,
-            //         fileString: await getRawFile(data),
-            //     });
-            // } catch (e) {
-            //     throw e
-            // }
+        let fileString = Buffer.from(data.content, 'base64').toString('utf-8');
+        if (fileString.length == 0 && data.size > 0) {
+            data = getRawFile({ path });
+            console.log(`RAW `, data);
+        }
+
+        saveToFile({ path, fileString });
+        // try {
+        //     // let const fileContent = Buffer.from(data.content, 'base64').toString('utf-8');
+        //     saveToFile({
+        //         path,
+        //         fileString: await getRawFile(data),
+        //     });
+        // } catch (e) {
+        //     throw e
+        // }
 
     }
 }
